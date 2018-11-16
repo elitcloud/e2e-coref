@@ -15,18 +15,24 @@ import numpy as np
 import tensorflow as tf
 import pyhocon
 
+path_prefix = ''
 
-def initialize_from_env():
+def initialize_experiment(name):
   if "GPU" in os.environ:
     set_gpus(int(os.environ["GPU"]))
   else:
     set_gpus()
 
-  name = sys.argv[1]
   print("Running experiment: {}".format(name))
 
-  config = pyhocon.ConfigFactory.parse_file("experiments.conf")[name]
-  config["log_dir"] = mkdirs(os.path.join(config["log_root"], name))
+  # Add path prefix to all files
+  config = pyhocon.ConfigFactory.parse_file(path_prefix + "experiments.conf")[name]
+  config["context_embeddings"]['path'] = path_prefix + config["context_embeddings"]['path']
+  config["head_embeddings"]['path'] = path_prefix + config["head_embeddings"]['path']
+  config["log_dir"] = mkdirs(os.path.join(path_prefix + config["log_root"], name))
+  config["char_vocab_path"] = path_prefix + config["char_vocab_path"]
+  config["eval_path"] = path_prefix + config["eval_path"]
+  config["conll_eval_path"] = path_prefix + config["conll_eval_path"]
 
   print(pyhocon.HOCONConverter.convert(config, "hocon"))
   return config

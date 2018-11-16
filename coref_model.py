@@ -247,7 +247,8 @@ class CorefModel(object):
       head_emb_list.append(aggregated_char_emb)
 
     if not self.lm_file:
-      elmo_module = hub.Module("https://tfhub.dev/google/elmo/2")
+      # elmo_module = hub.Module("https://tfhub.dev/google/elmo/2")
+      elmo_module = hub.Module("elmo/")
       lm_embeddings = elmo_module(
           inputs={"tokens": tokens, "sequence_len": text_len},
           signature="tokens", as_dict=True)
