@@ -6,6 +6,12 @@ curl -O https://nlp.stanford.edu/data/glove.840B.300d.zip
 unzip glove.840B.300d.zip
 rm glove.840B.300d.zip
 
+# Download pretrained elmo
+curl -kL -o elmo.tar.gz https://tfhub.dev/google/elmo/2?tf-hub-format=compressed
+mkdir -p elmo
+tar -xvzf elmo.tar.gz -C elmo
+rm elmo.tar.gz
+
 # Build custom kernels.
 TF_CFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))') )
 TF_LFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))') )

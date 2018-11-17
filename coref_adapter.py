@@ -54,15 +54,15 @@ class E2ECoref(NLPComponent):
     def evaluate(self, docs: Sequence[Document], **kwargs):
         pass
 
-    def decode(self, docs: Sequence[Document], **kwargs) -> Sequence[Document]:
+    def decode(self, docs: Sequence[Document], genre: str='nw', **kwargs) -> Sequence[Document]:
         for doc in docs:
             doc['sens'] = self.tokenizer.decode(doc['doc'])['sens']
-            predicted = self.make_predictions(doc, self.model, self.session)
+            predicted = self.make_predictions(doc, self.model, self.session, genre)
             doc['coref'] = self.adapt_output(predicted)
         return docs
 
-    def make_predictions(self, doc, model, session):
-        example = self.adapt_input(doc)
+    def make_predictions(self, doc, model, session, genre: str):
+        example = self.adapt_input(doc, genre)
         tensorized_example = model.tensorize_example(example, is_training=False)
         feed_dict = {i: t for i, t in zip(model.input_tensors, tensorized_example)}
         _, _, _, mention_starts, mention_ends, antecedents, antecedent_scores, head_scores = session.run(
@@ -76,9 +76,9 @@ class E2ECoref(NLPComponent):
         example["head_scores"] = head_scores.tolist()
         return example
 
-    def adapt_input(self, doc: Document):
+    def adapt_input(self, doc: Document, genre: str):
         result = {
-            "doc_key": "nw",
+            "doc_key": genre,
             "clusters": [],
             "sentences": [],
             "speakers": [],
