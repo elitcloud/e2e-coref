@@ -248,7 +248,7 @@ class CorefModel(object):
 
     if not self.lm_file:
       # elmo_module = hub.Module("https://tfhub.dev/google/elmo/2")
-      elmo_module = hub.Module("elmo/")
+      elmo_module = hub.Module(self.config["elmo_dir"])
       lm_embeddings = elmo_module(
           inputs={"tokens": tokens, "sequence_len": text_len},
           signature="tokens", as_dict=True)

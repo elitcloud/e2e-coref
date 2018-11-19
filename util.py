@@ -15,9 +15,8 @@ import numpy as np
 import tensorflow as tf
 import pyhocon
 
-path_prefix = ''
-
-def initialize_experiment(name):
+def initialize_experiment(name, path_context_emb: str=None, path_head_emb: str=None,
+                          dir_elmo: str=None, dir_log_root: str=None, path_char_vocab: str=None):
   if "GPU" in os.environ:
     set_gpus(int(os.environ["GPU"]))
   else:
@@ -25,14 +24,18 @@ def initialize_experiment(name):
 
   print("Running experiment: {}".format(name))
 
-  # Add path prefix to all files
-  config = pyhocon.ConfigFactory.parse_file(path_prefix + "experiments.conf")[name]
-  config["context_embeddings"]['path'] = path_prefix + config["context_embeddings"]['path']
-  config["head_embeddings"]['path'] = path_prefix + config["head_embeddings"]['path']
-  config["log_dir"] = mkdirs(os.path.join(path_prefix + config["log_root"], name))
-  config["char_vocab_path"] = path_prefix + config["char_vocab_path"]
-  config["eval_path"] = path_prefix + config["eval_path"]
-  config["conll_eval_path"] = path_prefix + config["conll_eval_path"]
+  config = pyhocon.ConfigFactory.parse_file("experiments.conf")[name]
+  if path_context_emb is not None:
+    config["context_embeddings"]['path'] = path_context_emb
+  if path_head_emb is not None:
+    config["head_embeddings"]['path'] = path_head_emb
+  config["elmo_dir"] = 'elmo/' if dir_elmo is None else dir_elmo
+  if dir_log_root is not None:
+    config["log_dir"] = mkdirs(os.path.join(dir_log_root, name))
+  else:
+    config["log_dir"] = mkdirs(os.path.join(config["log_root"], name))
+  if path_char_vocab is not None:
+    config["char_vocab_path"] = path_char_vocab
 
   print(pyhocon.HOCONConverter.convert(config, "hocon"))
   return config

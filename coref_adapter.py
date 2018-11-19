@@ -18,6 +18,7 @@
 
 import tensorflow as tf
 from typing import Sequence
+import sys
 
 from elit.nlp.tokenizer import EnglishTokenizer
 from elit.component import NLPComponent
@@ -30,11 +31,21 @@ __author__ = "Liyan Xu"
 
 
 class E2ECoref(NLPComponent):
-    def __init__(self, experiment: str='final'):
+    def __init__(self, experiment: str='final', path_context_emb: str=None, path_head_emb: str=None,
+                 dir_elmo: str=None, dir_log_root: str=None, path_char_vocab: str=None):
+        '''
+        :param experiment: 'final' or 'test'
+        :param path_context_emb: absolute path of context embedding
+        :param path_head_emb: absolute path of head embedding
+        :param dir_elmo: absolute path of elmo directory
+        :param dir_log_root: absolute path of log root directory
+        :param path_char_vocab: absolute path of char_vocab file
+        '''
         super(E2ECoref, self).__init__()
 
         self.tokenizer = EnglishTokenizer()
-        self.config = util.initialize_experiment(experiment)
+        self.config = util.initialize_experiment(
+            experiment, path_context_emb, path_head_emb, dir_elmo, dir_log_root, path_char_vocab)
         self.model = coref_model.CorefModel(self.config)
         self.session = tf.Session()     # Currently no closing operation
         self.model.restore(self.session)
@@ -54,15 +65,15 @@ class E2ECoref(NLPComponent):
     def evaluate(self, docs: Sequence[Document], **kwargs):
         pass
 
-    def decode(self, docs: Sequence[Document], genre: str='nw', **kwargs) -> Sequence[Document]:
+    def decode(self, docs: Sequence[Document], genre: str='nw', show_words=False, **kwargs) -> Sequence[Document]:
         for doc in docs:
-            doc['sens'] = self.tokenizer.decode(doc['doc'])['sens']
-            predicted = self.make_predictions(doc, self.model, self.session, genre)
-            doc['coref'] = self.adapt_output(predicted)
+            sentences = self.tokenizer.decode(doc['doc'])['sens']
+            predicted = self.make_predictions(sentences, self.model, self.session, genre)
+            doc['coref'] = self.adapt_output(predicted, show_words)
         return docs
 
-    def make_predictions(self, doc, model, session, genre: str):
-        example = self.adapt_input(doc, genre)
+    def make_predictions(self, sentences, model, session, genre: str):
+        example = self.adapt_input(sentences, genre)
         tensorized_example = model.tensorize_example(example, is_training=False)
         feed_dict = {i: t for i, t in zip(model.input_tensors, tensorized_example)}
         _, _, _, mention_starts, mention_ends, antecedents, antecedent_scores, head_scores = session.run(
@@ -76,30 +87,25 @@ class E2ECoref(NLPComponent):
         example["head_scores"] = head_scores.tolist()
         return example
 
-    def adapt_input(self, doc: Document, genre: str):
-        result = {
+    def adapt_input(self, sentences, genre: str):
+        return {
             "doc_key": genre,
             "clusters": [],
-            "sentences": [],
-            "speakers": [],
+            "sentences": [sentence['tok'] for sentence in sentences],
+            "speakers": [['' for _ in sentence['tok']] for sentence in sentences],
         }
-        sentences = doc['sens']
-        result['sentences'] = [sentence['tok'] for sentence in sentences]
-        result['speakers'] = [['' for _ in sentence['tok']] for sentence in sentences]
-        return result
 
-    def adapt_output(self, orig_output, show_words=True):
+    def adapt_output(self, orig_output, show_words):
+        tok = util.flatten(orig_output["sentences"])
         result = {
-            "mention": [],
+            "tok": tok,
+            "mention": [(start, end) for start, end in orig_output['top_spans']],
             "cluster": [],
         }
-        words = util.flatten(orig_output["sentences"])
-
-        result['mention'] = [(start, end) for start, end in orig_output['top_spans']]
         for cluster in orig_output['predicted_clusters']:
             curr = {'off': cluster}
             if show_words:
-                curr['words'] = [" ".join(words[m[0]:m[1] + 1]) for m in cluster]
+                curr['tok'] = [" ".join(tok[m[0]:m[1] + 1]) for m in cluster]
             result['cluster'].append(curr)
         return result
 
@@ -112,5 +118,6 @@ if __name__ == "__main__":
                   'offered to use his National Enquirer tabloid to buy the silence of women if they tried to ' \
                   'publicize alleged sexual encounters with Mr. Trump.'
     input_docs = [{'doc_id': 0, 'doc': sample_text}]
-    coref = E2ECoref('test')
-    print(coref.decode(input_docs))
+    experiment = 'test' if len(sys.argv) == 1 else sys.argv[1]
+    coref = E2ECoref(experiment)
+    print(coref.decode(input_docs, show_words=True))
