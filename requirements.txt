@@ -1,7 +1,7 @@
 tensorflow==1.7.0
 tensorflow-hub
 h5py
-nltk
 pyhocon
 scipy
 sklearn
+elit=0.1.25.dev1542393574
