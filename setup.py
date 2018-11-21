@@ -1,17 +1,10 @@
 from setuptools import setup
 from setuptools.command.install import install
-from sys import platform
-from subprocess import check_call
 import atexit
 
 
 def _post_install():
-    if platform == "linux" or platform == "linux2":
-        check_call(["./setup_kernel_linux.sh"])
-    elif platform == "darwin":
-        check_call(["./setup_kernel_mac.sh"])
-    else:
-        raise Exception('Unknown OS: ' + platform)
+    pass
 
 
 class PostInstallCommand(install):
@@ -20,10 +13,12 @@ class PostInstallCommand(install):
         atexit.register(_post_install)
 
 
-setup(name='uw-e2e-coref',
+setup(name='uw_e2e_coref',
       version='0.1',
       description='End-to-End Coreference Resolution',
       url='https://github.com/elitcloud/e2e-coref',
+      packages=['uw_e2e_coref'],
+      package_data={'uw_e2e_coref': ['coref_kernels_*.so', 'experiments.conf']},
       install_requires=[
           'tensorflow==1.7.0',
           'tensorflow-hub',
