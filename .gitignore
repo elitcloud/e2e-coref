@@ -11,3 +11,4 @@ glove*.txt.filtered
 .idea
 elmo
 .DS_Store
+venv/

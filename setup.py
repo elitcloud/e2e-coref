@@ -20,7 +20,7 @@ class PostInstallCommand(install):
         atexit.register(_post_install)
 
 
-setup(name='elit-e2e-coref',
+setup(name='uw-e2e-coref',
       version='0.1',
       description='End-to-End Coreference Resolution',
       url='https://github.com/elitcloud/e2e-coref',
