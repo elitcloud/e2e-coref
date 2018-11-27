@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import os
-
 import tensorflow as tf
 import util
 
