@@ -19,6 +19,7 @@
 import tensorflow as tf
 from typing import Sequence
 import sys
+from bisect import bisect_right
 
 from elit.component import NLPComponent
 from elit.structure import Document
@@ -96,16 +97,23 @@ class E2ECoref(NLPComponent):
         }
 
     def adapt_output(self, orig_output, show_words):
-        coref = []
+        sen_start_idx = []  # starting index of each sentence
+        curr_start_idx = 0
+        for sen in orig_output["sentences"]:
+            sen_start_idx.append(curr_start_idx)
+            curr_start_idx += len(sen)
+
+        # (tok_off_global, tok_off_global) -> (sen_idx, tok_off_sen, tok_off_sen)
+        def transform_off(off, sen_idx):
+            return [sen_idx, off[0] - sen_start_idx[sen_idx], off[1] - sen_start_idx[sen_idx] + 1]
+
+        coref = [[transform_off(off, bisect_right(sen_start_idx, off[0]) - 1) for off in cluster]
+                 for cluster in orig_output['predicted_clusters']]
 
         if not show_words:
             return coref
         else:
-            coref_words = []
-            tok = util.flatten(orig_output["sentences"])
-            for cluster in orig_output['predicted_clusters']:
-                words = [" ".join(tok[m[0]:m[1] + 1]) for m in cluster]
-                coref_words.append(words)
+            coref_words = [[" ".join(orig_output["sentences"][off[0]][off[1]:off[2]]) for off in cluster] for cluster in coref]
             return coref, coref_words
 
 
